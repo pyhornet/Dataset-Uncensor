@@ -1,20 +1,25 @@
 import json
 import os
+import sys
+from datetime import datetime
 from typing import Iterator
 from concurrent.futures import ThreadPoolExecutor
 
-def filter_json_lines(input_file_name: str, output_file_name: str, words_to_match: list[str], num_threads: int = 10) -> None:
+def filter_json_lines(input_file_name: str, words_to_match: list[str], num_threads: int = 10) -> None:
     """
     Filters JSON lines from the input file and writes the filtered lines to the output file.
     Lines are filtered out if the "output" field contains any of the specified words.
 
     :param input_file_name: Name of the input JSON file.
-    :param output_file_name: Name of the output JSON file.
     :param words_to_match: List of words to match in the "output" field.
     :param num_threads: Number of threads to use for parallel processing (defaults to 10).
     """
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_file_path = os.path.join(script_dir, input_file_name)
+
+    # Generate output file name based on current date and time
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output_file_name = f"{current_time}-UNCENSORED.json"
     output_file_path = os.path.join(script_dir, output_file_name)
 
     with open(input_file_path, 'r', encoding='utf-8') as input_fp, open(output_file_path, 'w', encoding='utf-8') as output_fp:
@@ -42,10 +47,13 @@ def filter_json_lines_iter(input_fp: Iterator[str], words_to_match: list[str]) -
         except json.JSONDecodeError:
             continue
 
-# Here is where you put the name of the input file, and name of the file that will be created. Note the input file needs to be in the same directory as the script unless you edit the code to have a file path instead. # Use './*.json' for Linux or Mac.
-input_file_name = '.\censored_dataset.json'
-output_file_name = '.\new_dataset.json'
-words_to_match = [
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python uncensor.py <input_file_name>")
+        sys.exit(1)
+
+    input_file_name = sys.argv[1]
+    words_to_match = words_to_match = [
     "text-based AI language model",
     "domestic violence",
     "please refrain",
