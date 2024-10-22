@@ -17,9 +17,10 @@ def filter_json_lines(input_file_name: str, words_to_match: list[str], num_threa
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_file_path = os.path.join(script_dir, input_file_name)
 
-    # Generate output file name based on current date and time
+    # Generate output file name based on current date and time and input file name
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_file_name = f"{current_time}-UNCENSORED.json"
+    base_name = os.path.splitext(input_file_name)[0]
+    output_file_name = f"{base_name}-{current_time}-UNCENSORED.json"
     output_file_path = os.path.join(script_dir, output_file_name)
 
     with open(input_file_path, 'r', encoding='utf-8') as input_fp, open(output_file_path, 'w', encoding='utf-8') as output_fp:
