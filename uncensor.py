@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from datetime import datetime
-from typing import Iterator
+from typing import Iterator, List, Union
 from concurrent.futures import ThreadPoolExecutor
 
 def filter_json_lines(input_file_name: str, words_to_match: list[str], num_threads: int = 10) -> None:
@@ -10,7 +10,7 @@ def filter_json_lines(input_file_name: str, words_to_match: list[str], num_threa
     Filters JSON lines from the input file and writes the filtered lines to the output file.
     Lines are filtered out if the "output" field contains any of the specified words.
 
-    :param input_file_name: Name of the input JSON file.
+    :param input_file_name: Name of the input JSON or JSON Lines file.
     :param words_to_match: List of words to match in the "output" field.
     :param num_threads: Number of threads to use for parallel processing (defaults to 10).
     """
@@ -23,34 +23,50 @@ def filter_json_lines(input_file_name: str, words_to_match: list[str], num_threa
     output_file_name = f"{base_name}-{current_time}-UNCENSORED.json"
     output_file_path = os.path.join(script_dir, output_file_name)
 
+    # Determine the file type based on the extension
+    file_extension = os.path.splitext(input_file_name)[1].lower()
+
     with open(input_file_path, 'r', encoding='utf-8') as input_fp, open(output_file_path, 'w', encoding='utf-8') as output_fp:
-        with ThreadPoolExecutor(max_workers=num_threads) as executor:
-            futures = [executor.submit(filter_json_lines_iter, input_fp, words_to_match) for _ in range(num_threads)]
-            for future in futures:
-                for line in future.result():
-                    output_fp.write(line)
+        if file_extension == '.json':
+            # Read the entire JSON file and process it
+            data = json.load(input_fp)
+            if not isinstance(data, list):
+                data = [data]
+            filtered_data = list(filter_json_lines_iter(data, words_to_match))
+            json.dump(filtered_data, output_fp, ensure_ascii=False, indent=4)
+        elif file_extension == '.jsonl':
+            # Read the JSON Lines file line by line.
+            lines = (line.strip() for line in input_fp if line.strip())
+            filtered_lines = list(filter_json_lines_iter(lines, words_to_match))
+            for line in filtered_lines:
+                output_fp.write(line + '\n')
+        else:
+            raise ValueError(f"Unsupported file format: {file_extension}. Supported formats are .json and .jsonl.\nNote: JSONL may not work at moment.")
 
-def filter_json_lines_iter(input_fp: Iterator[str], words_to_match: list[str]) -> Iterator[str]:
+def filter_json_lines_iter(lines: Union[Iterator[str], List[dict]], words_to_match: list[str]) -> Iterator[Union[str, dict]]:
     """
-    Generator function that yields filtered JSON lines.
+    Generator function that yields filtered JSON lines or objects.
 
-    :param input_fp: Iterator over input file lines.
+    :param lines: Iterator over input file lines or list of JSON objects.
     :param words_to_match: List of words to match in the "output" field.
-    :return: Iterator of filtered JSON lines.
+    :return: Iterator of filtered JSON lines or objects.
     """
     words_to_match_set = set(words_to_match)
-    for line in input_fp:
+    for line in lines:
         try:
-            data = json.loads(line)
+            if isinstance(line, str):
+                data = json.loads(line)
+            else:
+                data = line
             output_value = data.get('output', '')
             if not any(word in output_value for word in words_to_match_set):
-                yield line
+                yield data if isinstance(line, dict) else json.dumps(data)
         except json.JSONDecodeError:
             continue
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python uncensor.py <input_file_name>")
+        print("Usage: python uncensor.py <input_file_name>.\nNote: JSONL may not work at moment.")
         sys.exit(1)
 
     input_file_name = sys.argv[1]
