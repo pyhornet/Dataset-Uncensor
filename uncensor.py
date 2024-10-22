@@ -53,7 +53,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     input_file_name = sys.argv[1]
-    words_to_match = words_to_match = [
+    words_to_match = [
     "text-based AI language model",
     "domestic violence",
     "please refrain",
@@ -300,6 +300,6 @@ if __name__ == "__main__":
     "diversity",
     "*This chat conversation is shared from",
     "*This conversation is shared from",
-]
-
-filter_json_lines(input_file_name, output_file_name, words_to_match, num_threads=10)
+    ]
+    
+    filter_json_lines(input_file_name, words_to_match, num_threads=10)
