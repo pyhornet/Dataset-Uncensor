@@ -172,6 +172,7 @@ if __name__ == "__main__":
     "harmful",
     "hate speech",
     "hateful",
+    "hypothetical",
     "However,it is important to use any code or information provided responsibly and within legal and ethical boundaries.",
     "hurtful",
     "I am an AI language model and do not",
